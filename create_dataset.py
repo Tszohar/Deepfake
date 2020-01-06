@@ -1,6 +1,8 @@
 import glob
 import os
-from torch.utils.data import Dataset
+
+from PIL import Image
+from torch.utils.data import Dataset, DataLoader
 import json
 
 
@@ -27,4 +29,7 @@ class DFDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, item):
-        return self.data[item]
+        image = Image.open(self.data[item][0])
+        sample = {"image": image, "label": self.data[item][1]}
+
+        return sample
