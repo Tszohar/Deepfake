@@ -28,10 +28,3 @@ class DFDataset(Dataset):
 
     def __getitem__(self, item):
         return self.data[item]
-
-
-if __name__ == "__main__":
-    path = "/media/guy/Files 3/kaggle_competitions/deepfake/processed_data"
-    json_path = "/media/guy/Files 3/kaggle_competitions/deepfake/dfdc_train_part_0/metadata.json"
-    ds = DFDataset(json_path, path)
-    print("bla")
