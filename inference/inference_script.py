@@ -3,12 +3,14 @@ import os
 import shutil
 import sys
 import zipfile
+
 import pandas as pd
+
+from inference import inf_config
 from inference.video_handler import VideoHandler
-import argparse
 
 
-def extract(zip_file_path: str, dst_folder: str):
+def extract_zip(zip_file_path: str, dst_folder: str):
     """
     :param zip_file_path: file path to a zip file to be extracted to dst_folder
     :param dst_folder: destination folder for the unzipped files
@@ -28,9 +30,9 @@ if __name__ == "__main__":
     print(sys.argv)
     zip_file_path = sys.argv[1]
     videos_folder = os.path.splitext(zip_file_path)[0]
-    extract(zip_file_path=zip_file_path, dst_folder=videos_folder)
+    extract_zip(zip_file_path=zip_file_path, dst_folder=videos_folder)
     videos_file_list = glob.glob1(videos_folder, "*.mp4")
-    video_handler = VideoHandler()
+    video_handler = VideoHandler(image_size=inf_config.image_size, frame_decimation=inf_config.frame_decimation)
     submission_results = {}
     for video_file_name in videos_file_list:
         video_file_path = os.path.join(videos_folder, video_file_name)
