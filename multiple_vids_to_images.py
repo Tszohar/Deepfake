@@ -11,6 +11,7 @@ import numpy as np
 from PIL import Image
 from facenet_pytorch import MTCNN
 
+import config
 from log import get_logger
 
 
@@ -28,7 +29,7 @@ class VideoConverter(mp.Process):
     @property
     def detector(self):
         if self._detector is None:
-            image_size = 150
+            image_size = config.image_size
             self._detector = MTCNN(image_size=image_size, margin=int(0.3 * image_size), device="cuda:0")
         return self._detector
 
