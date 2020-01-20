@@ -1,32 +1,44 @@
 import glob
 import os
-import multiprocessing as mp
+import shutil
+import sys
 import zipfile
-
-import torch
-import torchvision.models as models
-import time
-from torch.utils.data import DataLoader
 import pandas as pd
-from dataset import DFDataset
-from inference import inf_config
 from inference.video_handler import VideoHandler
-from inference.zip_handler import ZipHandler
-from multiple_vids_to_images import VideoConverter
+import argparse
 
 
+def extract(zip_file_path: str, dst_folder: str):
+    """
+    :param zip_file_path: file path to a zip file to be extracted to dst_folder
+    :param dst_folder: destination folder for the unzipped files
+    :return: This function receives a zip file and extract it to dst_folder
+    """
 
-
+    with zipfile.ZipFile(zip_file_path) as zip:
+        if os.path.isdir(dst_folder):
+            shutil.rmtree(dst_folder)
+        os.makedirs(dst_folder)
+        print('Extracting zip')
+        zip.extractall(dst_folder)
+        print('Extraction Completed')
 
 
 if __name__ == "__main__":
-    zip_file_path = inf_config.input_zip
-    print("bla")
-   # ZipHandler(zip_file_path)
-    videos_list = glob.glob1(inf_config.videos_folder, "*.mp4")
-    for vid in videos_list:
-        vid_file_path = os.path.join(inf_config.videos_folder, vid)
-        result = VideoHandler(video_file_path=vid_file_path)
-        print('{} is {}'.format(vid, result.evaluation))
+    print(sys.argv)
+    zip_file_path = sys.argv[1]
+    videos_folder = os.path.splitext(zip_file_path)[0]
+    extract(zip_file_path=zip_file_path, dst_folder=videos_folder)
+    videos_file_list = glob.glob1(videos_folder, "*.mp4")
+    video_handler = VideoHandler()
+    submission_results = {}
+    for video_file_name in videos_file_list:
+        video_file_path = os.path.join(videos_folder, video_file_name)
+        result = video_handler.handle(video_file_path=video_file_path)
+        submission_results.update({(video_file_name, result)})
+        print('{} FAKE probability is: {}'.format(video_file_name, result))
+    submission_path = os.path.join(os.path.dirname(zip_file_path), 'submission.csv')
+    dataframe = pd.DataFrame(list(submission_results.items()), columns=['filename', 'label'])
+    dataframe.to_csv(submission_path)
 
 
