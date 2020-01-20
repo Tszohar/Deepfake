@@ -11,22 +11,8 @@ import torchvision.models as models
 import config
 
 
-def load_config():
-    train_data_path = config.train_data_path
-    train_json_path = config.train_json_path
-    validation_data_path = config.validation_data_path
-    validation_json_path = config.validation_json_path
-    batch_size = config.batch_size
-    results_dir = config.results_dir
-
-    return train_data_path, train_json_path, validation_data_path, validation_json_path, batch_size
-
-
-def get_dataset(json_path: str, data_path: str, is_validation: bool = False):
-    if is_validation:
-        dataset = DFDataset(json_path=json_path, data_dir=data_path)
-    else:
-        dataset = DFDataset(json_path=json_path, data_dir=data_path)
+def get_dataset(json_path: str, data_path: str):
+    dataset = DFDataset(json_path=json_path, data_dir=data_path)
     return dataset
 
 
@@ -44,8 +30,7 @@ def get_model():
 
 def get_criterion():
     criterion = nn.CrossEntropyLoss()
-    device = config.device
-    criterion.to(device)
+    criterion.to(config.device)
     return criterion
 
 
@@ -63,7 +48,7 @@ def run_validation(net: models, dataloader: DataLoader, log_dir: str):
         writer_validation.file_writer.flush()
 
 
-def save_model(net: models, epoch: int, output_dir: str):
+def save_model(net: nn.Module, epoch: int, output_dir: str):
     torch.save(net.state_dict(), os.path.join(output_dir, 'model_epoch_{}.pth'.format(epoch)))
 
 
@@ -103,12 +88,10 @@ def run_train(train_dataloader: DataLoader, validation_dataloader: DataLoader):
 
 
 if __name__ == "__main__":
-    train_data_path, train_json_path, validation_data_path, validation_json_path, batch_size = load_config()
-
-    train_dataset = get_dataset(json_path=train_json_path, data_path=train_data_path)
-    train_dl = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
-    validation_dataset = get_dataset(json_path=validation_json_path, data_path=validation_data_path, is_validation=True)
-    validation_dl = DataLoader(validation_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+    train_dataset = get_dataset(json_path=config.train_json_path, data_path=config.train_data_path)
+    train_dl = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, num_workers=8)
+    validation_dataset = get_dataset(json_path=config.validation_json_path, data_path=config.validation_data_path)
+    validation_dl = DataLoader(validation_dataset, batch_size=config.batch_size, shuffle=True, num_workers=8)
 
     run_train(train_dataloader=train_dl, validation_dataloader=validation_dl)
 
