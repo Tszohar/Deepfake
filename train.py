@@ -94,5 +94,3 @@ if __name__ == "__main__":
     validation_dl = DataLoader(validation_dataset, batch_size=config.batch_size, shuffle=True, num_workers=8)
 
     run_train(train_dataloader=train_dl, validation_dataloader=validation_dl)
-
-    print("bla")
