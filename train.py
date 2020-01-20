@@ -17,8 +17,6 @@ def load_config():
     validation_data_path = config.validation_data_path
     validation_json_path = config.validation_json_path
     batch_size = config.batch_size
-    results_dir = config.results_dir
-
     return train_data_path, train_json_path, validation_data_path, validation_json_path, batch_size
 
 
@@ -111,5 +109,3 @@ if __name__ == "__main__":
     validation_dl = DataLoader(validation_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
 
     run_train(train_dataloader=train_dl, validation_dataloader=validation_dl)
-
-    print("bla")
