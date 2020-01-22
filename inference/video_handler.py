@@ -16,18 +16,19 @@ class VideoHandler:
     """
     VideoHandler receives video file path in order to detect the probability of being 'FAKE'
     """
-    def __init__(self, image_size: int, frame_decimation: int):
+    def __init__(self, image_size: int, frame_decimation: int, output_path: str):
         self._image_size = image_size
         self._frame_decimation = frame_decimation
+        self._working_folder = output_path
 
-        self.video_pre_processor = VideoPreProcessor(image_size=self._image_size)
+        self.video_pre_processor = VideoPreProcessor(image_size=self._image_size, output_path=self._working_folder)
 
         self._transform = transforms.Compose([transforms.ToTensor(),
                                               transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                                    std=[0.229, 0.224, 0.225]),
                                               ])
         self._net = self.load_net(model_path=inf_config.model, device=torch.device("cuda"))
-        self._softmax = nn.Softmax(dim=2)
+        self._softmax = nn.Softmax()
 
     def handle(self, video_file_path: str) -> float:
         """
@@ -36,8 +37,8 @@ class VideoHandler:
         """
         self.video_pre_processor.convert_to_frames(video_file_path=video_file_path,
                                                    frame_decimation=self._frame_decimation)
-        cropped_frames_folder = self.video_pre_processor.get_dst_folder(video_file_path)
-        fake_probability = self.classify(frames_folder=cropped_frames_folder)
+        # cropped_frames_folder = self.video_pre_processor.get_dst_folder(video_file_path)
+        fake_probability = self.classify(frames_folder=self._working_folder)
         return fake_probability
 
     def load_net(self, model_path: str, device: torch.device) -> nn.Module:

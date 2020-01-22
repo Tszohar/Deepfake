@@ -12,8 +12,9 @@ class VideoPreProcessor:
     """
     VideoPreProcessor converts each video file to frames according to a certain configuration
     """
-    def __init__(self, image_size: int):
+    def __init__(self, image_size: int, output_path: str):
         self._frame_handler = FrameHandler(image_size=image_size)
+        self._working_folder = output_path
 
     @classmethod
     def get_dst_folder(cls, video_file_path: str) -> str:
@@ -26,7 +27,7 @@ class VideoPreProcessor:
         :param frame_decimation: video decimation to create frames
         :return: None
         """
-        dst_folder = self.get_dst_folder(video_file_path)
+        dst_folder = self._working_folder
         if os.path.isdir(dst_folder):
             shutil.rmtree(dst_folder)
         os.makedirs(dst_folder)
