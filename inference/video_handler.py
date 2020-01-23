@@ -28,7 +28,7 @@ class VideoHandler:
                                                                    std=[0.229, 0.224, 0.225]),
                                               ])
         self._net = self.load_net(model_path=inf_config.model, device=torch.device("cuda"))
-        self._softmax = nn.Softmax()
+        self._softmax = nn.Softmax(dim=1)
 
     def handle(self, video_file_path: str) -> float:
         """
