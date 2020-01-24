@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torch import nn
 from torchvision import models, transforms
-from video_pre_processor import VideoPreProcessor
+from inference.video_pre_processor import VideoPreProcessor
 
 
 class VideoHandler:

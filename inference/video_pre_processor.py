@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import torch
 from PIL import Image
-from frame_handler import FrameHandler
+from inference.frame_handler import FrameHandler
 
 
 class VideoPreProcessor:
