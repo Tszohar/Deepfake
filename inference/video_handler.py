@@ -22,7 +22,6 @@ class VideoHandler:
                                                                    std=[0.229, 0.224, 0.225]),
                                               ])
         self._net = self.load_net(model_path=model_path, device=torch.device("cuda"))
-        self._softmax = nn.Softmax(dim=1)
 
     def load_net(self, model_path: str, device: torch.device) -> nn.Module:
         """
@@ -58,9 +57,9 @@ class VideoHandler:
 
         frames = torch.stack(frame_list, dim=0)
         output = self._net(frames.to(device))
-        probabilities = self._softmax(output)
+        probabilities = nn.Softmax(dim=0)(torch.mean(output, dim=0)).detach().cpu().numpy()
 
-        video_fake_prob = 1 - float(np.prod(probabilities[:, 0].detach().cpu().numpy()))
+        video_fake_prob = float(probabilities[1])
 
         eps = 1e-8
         video_fake_prob = max(eps, min(1-eps, video_fake_prob))
