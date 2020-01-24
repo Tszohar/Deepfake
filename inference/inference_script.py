@@ -33,7 +33,7 @@ if __name__ == "__main__":
     # extract_zip(zip_file_path=zip_file_path, dst_folder=videos_folder)
     videos_file_list = glob.glob1(videos_folder, "*.mp4")
     video_handler = VideoHandler(image_size=inf_config.image_size, frame_decimation=inf_config.frame_decimation,
-                                 output_path=inf_config.output_path)
+                                 output_path=inf_config.output_path, model_path=inf_config.model)
     submission_results = {}
     for video_file_name in videos_file_list:
         video_file_path = os.path.join(videos_folder, video_file_name)

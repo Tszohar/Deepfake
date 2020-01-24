@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from inference.frame_handler import FrameHandler
+from frame_handler import FrameHandler
 
 
 class VideoPreProcessor:

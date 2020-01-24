@@ -8,15 +8,14 @@ from PIL import Image
 from torch import nn
 from torchvision import models, transforms
 
-from inference import inf_config
-from inference.video_pre_processor import VideoPreProcessor
+from video_pre_processor import VideoPreProcessor
 
 
 class VideoHandler:
     """
     VideoHandler receives video file path in order to detect the probability of being 'FAKE'
     """
-    def __init__(self, image_size: int, frame_decimation: int, output_path: str):
+    def __init__(self, image_size: int, frame_decimation: int, output_path: str, model_path: str):
         self._image_size = image_size
         self._frame_decimation = frame_decimation
         self._working_folder = output_path
@@ -27,8 +26,8 @@ class VideoHandler:
                                               transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                                    std=[0.229, 0.224, 0.225]),
                                               ])
-        self._net = self.load_net(model_path=inf_config.model, device=torch.device("cuda"))
-        self._softmax = nn.Softmax()
+        self._net = self.load_net(model_path=model_path, device=torch.device("cuda"))
+        self._softmax = nn.Softmax(dim=1)
 
     def handle(self, video_file_path: str) -> float:
         """
