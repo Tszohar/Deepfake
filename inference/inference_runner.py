@@ -33,7 +33,7 @@ def run(base_dir: str):
         if json_data is not None:
             label = json_data[video_file_name]['label']
             print("Ground truth label: {}".format(label))
-            results.append((1-result, float(label == "FAKE")))
+            results.append((result, float(label == "FAKE")))
 
             results_np = np.array(results)
             if sum(results_np[:, 1] == 0.) > 0 and sum(results_np[:, 1] == 1.) > 0:
