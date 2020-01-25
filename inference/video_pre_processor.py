@@ -46,6 +46,9 @@ class VideoPreProcessor:
             img_cropped = self._frame_handler.process(image)
             if img_cropped is None:
                 continue
+            img_cropped = img_cropped / torch.abs(img_cropped).max()
+            img_cropped = img_cropped / 2 + 0.5
+
             transformed_image = preprocessing_transform(img_cropped)
             frame_list.append(transformed_image)
 
@@ -64,8 +67,6 @@ class VideoPreProcessor:
         for idx, frame in enumerate(frames):
             np_image = frame.numpy()
             trans_image = np.transpose(np_image, [1, 2, 0])
-            trans_image = trans_image / np.max(np.abs(trans_image))
-            trans_image = trans_image / 2 + 0.5
             trans_image = (trans_image * 255)
             trans_image = cv2.cvtColor(trans_image, cv2.COLOR_RGB2BGR)
             cv2.imwrite(os.path.join(dst_folder, "frame{:03d}.jpg".format(idx)), trans_image)

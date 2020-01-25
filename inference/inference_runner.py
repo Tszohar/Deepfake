@@ -36,9 +36,8 @@ def run(base_dir: str):
             results.append((result, float(label == "FAKE")))
 
             results_np = np.array(results)
-            if sum(results_np[:, 1] == 0.) > 0 and sum(results_np[:, 1] == 1.) > 0:
-                loss = log_loss(results_np[:, 1], results_np[:, 0])
-                print("Loss until now: {}".format(loss))
+            loss = log_loss(y_true=results_np[:, 1], y_pred=results_np[:, 0], labels=[0., 1.])
+            print("Loss until now: {}".format(loss))
     dataframe = pd.DataFrame(list(submission_results.items()), columns=['filename', 'label'])
     dataframe.to_csv('submission.csv', index=False)
 
