@@ -11,12 +11,12 @@ from inference.video_handler import VideoHandler
 from sklearn.metrics import log_loss
 
 
-def run(base_dir: str):
-    meta_data_file = os.path.join(base_dir, "metadata.json")
-    json_data = None
-    if os.path.isfile(meta_data_file):
-        with open(meta_data_file) as f:
-            json_data = json.load(f)
+def run(base_dir: str, load_gt_data: bool = False):
+    if load_gt_data:
+        meta_data_file = os.path.join(base_dir, "metadata.json")
+        if os.path.isfile(meta_data_file):
+            with open(meta_data_file) as f:
+                json_data = json.load(f)
     videos_file_list = glob.glob1(base_dir, "*.mp4")
     video_handler = VideoHandler(image_size=inf_config.image_size,
                                  frame_decimation=inf_config.frame_decimation,
@@ -25,12 +25,11 @@ def run(base_dir: str):
     submission_results = {}
     results = []
     for video_file_name in videos_file_list:
-        assert json_data is None or video_file_name in json_data
         video_file_path = os.path.join(base_dir, video_file_name)
         result = video_handler.handle(video_file_path=video_file_path)
         submission_results.update({(video_file_name, result)})
         print('{} FAKE probability is: {}'.format(video_file_name, result))
-        if json_data is not None:
+        if load_gt_data and json_data is not None and video_file_name in json_data:
             label = json_data[video_file_name]['label']
             print("Ground truth label: {}".format(label))
             results.append((result, float(label == "FAKE")))
