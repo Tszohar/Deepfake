@@ -53,8 +53,10 @@ class VideoHandler:
         :return: This function calculates Fake probability for each frame in self._cropped_frames_folder
          and returns the mean probability
         """
-        device = torch.device("cuda")
+        if len(frame_list) == 0:
+            return 0.5
 
+        device = torch.device("cuda")
         frames = torch.stack(frame_list, dim=0)
         output = self._net(frames.to(device))
         probabilities = nn.Softmax(dim=0)(torch.mean(output, dim=0)).detach().cpu().numpy()

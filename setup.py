@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='deepfake_challenge_tsofi',
-    version='0.3',
+    version='0.4',
     author="Tsofit Zohar",
     author_email="tsofit.bk@gmail.com",
     description="My Deepfake challenge code",

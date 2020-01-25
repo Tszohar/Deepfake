@@ -43,4 +43,4 @@ def run(base_dir: str, load_gt_data: bool = False):
 
 if __name__ == "__main__":
     videos_folder = sys.argv[1]
-    run(base_dir=videos_folder)
+    run(base_dir=videos_folder, load_gt_data=True)
