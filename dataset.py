@@ -1,5 +1,6 @@
 import glob
 import os
+from typing import Tuple, List
 
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
@@ -8,7 +9,7 @@ import json
 from torchvision.transforms import transforms
 
 
-def create_samples_list(json_path: str, data_dir: str):
+def create_samples_list(json_path: str, data_dir: str) -> List[Tuple[str, str]]:
     """
     This function creates samples list with their label according to the files in data_dir.
     Every sample is identified as the full path of the file.
@@ -18,7 +19,8 @@ def create_samples_list(json_path: str, data_dir: str):
     """
 
     files_list = [name for name in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, name))]
-    samples_list = []
+    fake_samples = []
+    real_samples = []
 
     with open(json_path) as json_file:
         json_data = json.load(json_file)
@@ -28,8 +30,11 @@ def create_samples_list(json_path: str, data_dir: str):
         file_label = json_data[filename + ".mp4"]['label']
         for frame in frames:
             img_full_path = os.path.join(vid_folder, frame)
-            samples_list.append((img_full_path, file_label))
-    return samples_list
+            if file_label == "FAKE":
+                fake_samples.append((img_full_path, file_label))
+            else:
+                real_samples.append((img_full_path, file_label))
+    return real_samples + fake_samples
 
 
 class DFDataset(Dataset):
@@ -60,3 +65,8 @@ class DFDataset(Dataset):
         sample = {"image": image, "label": label, "label_str": self._samples_list[item][1]}
 
         return sample
+
+    def class_sample_count(self) -> List[int]:
+        fake_samples = sum(sample[1] == "FAKE" for sample in self._samples_list)
+        real_samples = sum(sample[1] == "REAL" for sample in self._samples_list)
+        return [real_samples, fake_samples]

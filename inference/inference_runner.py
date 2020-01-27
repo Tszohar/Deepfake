@@ -8,7 +8,7 @@ import pandas as pd
 
 from inference import inf_config
 from inference.video_handler import VideoHandler
-from sklearn.metrics import log_loss
+from sklearn import metrics
 
 
 def run(base_dir: str, load_gt_data: bool = False):
@@ -35,8 +35,12 @@ def run(base_dir: str, load_gt_data: bool = False):
             results.append((result, float(label == "FAKE")))
 
             results_np = np.array(results)
-            loss = log_loss(y_true=results_np[:, 1], y_pred=results_np[:, 0], labels=[0., 1.])
-            print("Loss until now: {}".format(loss))
+            y_true = results_np[:, 1]
+            y_pred = results_np[:, 0]
+            loss = metrics.log_loss(y_true=y_true, y_pred=y_pred, labels=[0., 1.])
+            precision = metrics.precision_score(y_true=y_true, y_pred=(y_pred > 0.5).astype(np.int), labels=[0, 1], pos_label=0)
+            recall = metrics.recall_score(y_true=y_true, y_pred=(y_pred > 0.5).astype(np.int), labels=[0, 1], pos_label=0)
+            print("Metrics until now, Loss: {}, precision: {}, recall: {}".format(loss, precision, recall))
     dataframe = pd.DataFrame(list(submission_results.items()), columns=['filename', 'label'])
     dataframe.to_csv('submission.csv', index=False)
 

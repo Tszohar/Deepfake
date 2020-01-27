@@ -3,4 +3,4 @@ output_path = "/media/guy/Files 3/kaggle_competitions/deepfake/outputs"
 
 batch_size = 128
 image_size = 224
-frame_decimation = 75
+frame_decimation = 10
