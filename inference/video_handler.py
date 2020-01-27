@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torch import nn
 from torchvision import models, transforms
-from video_pre_processor import VideoPreProcessor
+from inference.video_pre_processor import VideoPreProcessor
 
 
 class VideoHandler:
@@ -22,7 +22,6 @@ class VideoHandler:
                                                                    std=[0.229, 0.224, 0.225]),
                                               ])
         self._net = self.load_net(model_path=model_path, device=torch.device("cuda"))
-        self._softmax = nn.Softmax(dim=1)
 
     def load_net(self, model_path: str, device: torch.device) -> nn.Module:
         """
@@ -54,13 +53,15 @@ class VideoHandler:
         :return: This function calculates Fake probability for each frame in self._cropped_frames_folder
          and returns the mean probability
         """
-        device = torch.device("cuda")
+        if len(frame_list) == 0:
+            return 0.5
 
+        device = torch.device("cuda")
         frames = torch.stack(frame_list, dim=0)
         output = self._net(frames.to(device))
-        probabilities = self._softmax(output)
+        probabilities = nn.Softmax(dim=0)(torch.mean(output, dim=0)).detach().cpu().numpy()
 
-        video_fake_prob = 1 - float(np.prod(probabilities[:, 0].detach().cpu().numpy()))
+        video_fake_prob = float(probabilities[1])
 
         eps = 1e-8
         video_fake_prob = max(eps, min(1-eps, video_fake_prob))

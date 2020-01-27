@@ -1,6 +1,7 @@
 import datetime
 import os
 
+import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -9,7 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 from dataset import DFDataset
 import torchvision.models as models
 import config
-
+from sklearn.metrics import log_loss, accuracy_score
 
 def get_dataset(json_path: str, data_path: str):
     dataset = DFDataset(json_path=json_path, data_dir=data_path)
@@ -34,11 +35,16 @@ def get_criterion():
     return criterion
 
 
-def run_validation(net: models, dataloader: DataLoader, log_dir: str):
+def run_validation(net: models, dataloader: DataLoader, log_dir: str, epoch: int):
     net.eval()
     validation_run_counter = 0
     writer_validation = SummaryWriter(log_dir=os.path.join(log_dir, 'validation'))
     criterion = get_criterion()
+    softmax = nn.Softmax(dim=1)
+
+    batch_log_loss = np.zeros((len(dataloader), 1))
+    batch_accuracy = np.zeros((len(dataloader), 1))
+
     for i_batch, sample_batched in enumerate(dataloader):
         validation_run_counter += 1
         outputs = net(sample_batched['image'].to(config.device))
@@ -46,6 +52,16 @@ def run_validation(net: models, dataloader: DataLoader, log_dir: str):
         writer_validation.add_scalar(tag='loss', scalar_value=loss_validation.item(),
                                      global_step=validation_run_counter)
         writer_validation.file_writer.flush()
+        batch_log_loss[i_batch] = log_loss(y_true=sample_batched['label'].detach().cpu(),
+                                           y_pred=softmax(outputs)[:, 1].detach().cpu(), eps=1e-5, labels=[1,0])
+        batch_accuracy[i_batch] = accuracy_score(y_true=sample_batched['label'].detach().cpu(),
+                                                 y_pred=softmax(outputs).argmax(axis=1).detach().cpu())
+    val_log_loss = np.mean(batch_log_loss)
+    val_accuracy = np.mean(batch_accuracy)
+    print("epoch {} validation log_loss is: {}".format(epoch, val_log_loss))
+    print("epoch {} validation accuracy is: {}".format(epoch, val_accuracy))
+    writer_validation.add_scalar(tag='log_loss', scalar_value=val_log_loss, global_step=epoch)
+    writer_validation.add_scalar(tag='accuracy', scalar_value=val_accuracy, global_step=epoch)
 
 
 def save_model(net: nn.Module, epoch: int, output_dir: str):
@@ -62,8 +78,11 @@ def run_train(train_dataloader: DataLoader, validation_dataloader: DataLoader):
     device = config.device
     net, optimizer = get_model()
     criterion = get_criterion()
+    softmax = nn.Softmax(dim=1)
 
     run_counter = 0
+    batch_log_loss = np.zeros((len(train_dataloader), 1))
+    batch_accuracy = np.zeros((len(train_dataloader), 1))
 
     writer_train = SummaryWriter(log_dir=os.path.join(log_dir, 'train'))
 
@@ -83,7 +102,22 @@ def run_train(train_dataloader: DataLoader, validation_dataloader: DataLoader):
                 print('[epoch: {}, batch: {}] loss: {:.3f}'.format(epoch + 1, i_batch + 1, loss.item()))
                 running_loss = 0.0
             writer_train.file_writer.flush()
-        run_validation(net=net, dataloader=validation_dataloader, log_dir=log_dir)
+
+            batch_log_loss[i_batch] = log_loss(y_true=sample_batched['label'].detach().cpu(),
+                                               y_pred=softmax(outputs)[:, 1].detach().cpu(), eps=1e-5, labels=[1, 0])
+            batch_accuracy[i_batch] = accuracy_score(y_true=sample_batched['label'].detach().cpu(),
+                                                     y_pred=softmax(outputs).argmax(axis=1).detach().cpu())
+        epoch_log_loss = np.mean(batch_log_loss)
+        epoch_accuracy = np.mean(batch_accuracy)
+        print("epoch {} log_loss is: {}".format(epoch, epoch_log_loss))
+        print("epoch {} accuracy is: {}".format(epoch, epoch_accuracy))
+        batch_log_loss = np.zeros((len(train_dataloader), 1))
+        batch_accuracy = np.zeros((len(train_dataloader), 1))
+
+        writer_train.add_scalar(tag='log_loss', scalar_value=epoch_log_loss, global_step=epoch)
+        writer_train.add_scalar(tag='accuracy', scalar_value=epoch_accuracy, global_step=epoch)
+
+        run_validation(net=net, dataloader=validation_dataloader, log_dir=log_dir, epoch=epoch)
         save_model(net=net, epoch=epoch, output_dir=log_dir)
 
 
