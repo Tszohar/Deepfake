@@ -137,9 +137,13 @@ def run_train(train_dataloader: DataLoader, validation_dataloader: DataLoader):
 
 if __name__ == "__main__":
     train_dataset = get_dataset(json_path=config.train_json_path, data_path=config.train_data_path)
-    class_sample_count = np.array(train_dataset.class_sample_count(), dtype=np.float32)
-    weights = 1 - class_sample_count / np.sum(class_sample_count)
-    sampler = torch.utils.data.sampler.WeightedRandomSampler(weights, len(train_dataset))
+    class_sample_count = np.array(train_dataset.class_sample_count(), dtype=np.int)
+    target = torch.cat((torch.zeros(class_sample_count[0], dtype=torch.long),
+                        torch.ones(class_sample_count[1], dtype=torch.long)))
+    weights = 1. / class_sample_count
+
+    samples_weight = torch.tensor([weights[t] for t in target])
+    sampler = torch.utils.data.sampler.WeightedRandomSampler(weights=samples_weight, num_samples=len(train_dataset))
     train_dl = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=False, num_workers=8, sampler=sampler)
     validation_dataset = get_dataset(json_path=config.validation_json_path, data_path=config.validation_data_path)
     validation_dl = DataLoader(validation_dataset, batch_size=config.batch_size, shuffle=True, num_workers=8)

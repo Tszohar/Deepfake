@@ -7,7 +7,7 @@ validation_json_path = "/media/guy/Files 3/kaggle_competitions/deepfake/dfdc_tra
 pretrained_weights_path = "/media/guy/Files 3/kaggle_competitions/deepfake/resnet34/resnet34-333f7ec4.pth"
 results_dir = "/media/guy/Files 3/kaggle_competitions/deepfake/results"
 
-experiment_name = "test1"
+experiment_name = "balanced_data"
 
 batch_size = 128
 epoch_size = 100
