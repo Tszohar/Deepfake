@@ -10,7 +10,7 @@ results_dir = "/media/guy/Files 3/kaggle_competitions/deepfake/results"
 experiment_name = "test1"
 
 batch_size = 128
-epoch_size = 10
+epoch_size = 100
 image_size = 224
 
 device = torch.device("cuda")

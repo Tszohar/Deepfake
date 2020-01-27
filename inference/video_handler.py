@@ -1,45 +1,28 @@
-import glob
-import os
+from typing import List
 
-import PIL
 import numpy as np
 import torch
-from PIL import Image
 from torch import nn
 from torchvision import models, transforms
-
-from inference import inf_config
-from inference.video_pre_processor import VideoPreProcessor
+from video_pre_processor import VideoPreProcessor
 
 
 class VideoHandler:
     """
     VideoHandler receives video file path in order to detect the probability of being 'FAKE'
     """
-    def __init__(self, image_size: int, frame_decimation: int, output_path: str):
+    def __init__(self, image_size: int, frame_decimation: int, output_path: str, model_path: str):
         self._image_size = image_size
         self._frame_decimation = frame_decimation
         self._working_folder = output_path
 
         self.video_pre_processor = VideoPreProcessor(image_size=self._image_size, output_path=self._working_folder)
 
-        self._transform = transforms.Compose([transforms.ToTensor(),
-                                              transforms.Normalize(mean=[0.485, 0.456, 0.406],
+        self._transform = transforms.Compose([transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                                    std=[0.229, 0.224, 0.225]),
                                               ])
-        self._net = self.load_net(model_path=inf_config.model, device=torch.device("cuda"))
-        self._softmax = nn.Softmax()
-
-    def handle(self, video_file_path: str) -> float:
-        """
-        :param video_file_path: video file path to process
-        :return: This function returns the probability of video_file_path being 'FAKE'
-        """
-        self.video_pre_processor.convert_to_frames(video_file_path=video_file_path,
-                                                   frame_decimation=self._frame_decimation)
-        # cropped_frames_folder = self.video_pre_processor.get_dst_folder(video_file_path)
-        fake_probability = self.classify(frames_folder=self._working_folder)
-        return fake_probability
+        self._net = self.load_net(model_path=model_path, device=torch.device("cuda"))
+        self._softmax = nn.Softmax(dim=1)
 
     def load_net(self, model_path: str, device: torch.device) -> nn.Module:
         """
@@ -53,29 +36,33 @@ class VideoHandler:
         resnet34.eval()
         return resnet34
 
-    def classify(self, frames_folder: str) -> float:
+    def handle(self, video_file_path: str) -> float:
+        """
+        :param video_file_path: video file path to process
+        :return: This function returns the probability of video_file_path being 'FAKE'
+        """
+        frame_list = self.video_pre_processor.convert_to_frames(
+            video_file_path=video_file_path,
+            frame_decimation=self._frame_decimation,
+            preprocessing_transform=self._transform
+        )
+        fake_probability = self.classify(frame_list=frame_list)
+        return fake_probability
+
+    def classify(self, frame_list: List[torch.Tensor]) -> float:
         """
         :return: This function calculates Fake probability for each frame in self._cropped_frames_folder
          and returns the mean probability
         """
-        frames_list = glob.glob1(frames_folder, "*.jpg")
         device = torch.device("cuda")
 
-        frames_result = []
-        for frame in frames_list:
-            frame_path = os.path.join(frames_folder, frame)
-            image = self._transform(PIL.Image.open(frame_path))
-            output = self._net(image[None, ::].to(device))
-            softmax = self._softmax(output)
-            fake_probability = softmax[0][1].item()
-            frames_result.append(fake_probability)
+        frames = torch.stack(frame_list, dim=0)
+        output = self._net(frames.to(device))
+        probabilities = self._softmax(output)
 
-        video_prob = self.calc_video_prob(np.array(frames_result))
+        video_fake_prob = 1 - float(np.prod(probabilities[:, 0].detach().cpu().numpy()))
 
-        return video_prob
+        eps = 1e-8
+        video_fake_prob = max(eps, min(1-eps, video_fake_prob))
 
-    def calc_video_prob(self, probs: np.ndarray) -> float:
-        """
-        :return: return the mean probability of self._results list
-        """
-        return float(np.mean(probs))
+        return video_fake_prob
