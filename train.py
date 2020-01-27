@@ -1,5 +1,6 @@
 import datetime
 import os
+from collections import OrderedDict
 
 import numpy as np
 import torch
@@ -12,21 +13,33 @@ import torchvision.models as models
 import config
 from sklearn.metrics import log_loss, accuracy_score
 
-def get_dataset(json_path: str, data_path: str):
+
+def my_load_state_dict(net: nn.Module, saved_model: OrderedDict):
+    net_state_dict = net.state_dict()
+    new_state_dict = OrderedDict([(name, value)
+                                  for name, value in saved_model.items()
+                                  if name in net_state_dict and net_state_dict[name].shape == value.shape])
+
+    net.load_state_dict(new_state_dict, strict=False)
+
+
+def get_dataset(json_path: str, data_path: str) -> DFDataset:
     dataset = DFDataset(json_path=json_path, data_dir=data_path)
     return dataset
 
 
-def get_model():
-    pretrained_weights_path = config.pretrained_weights_path
+def get_model(pretrained_path: str):
     resnet34 = models.resnet34(pretrained=False)
-    model = torch.load(pretrained_weights_path)
-    resnet34.load_state_dict(model, strict=False)
-    optimizer = torch.optim.Adam(resnet34.parameters(), lr=1e-3)
+    saved_model = torch.load(pretrained_path)
     # Changing last fc layer to become binary output
     resnet34.fc = nn.Linear(512, 2)
+    my_load_state_dict(net=resnet34, saved_model=saved_model)
     resnet34.to(config.device)
-    return resnet34, optimizer
+    return resnet34
+
+
+def get_optimizer(model: nn.Module):
+    return torch.optim.Adam(model.parameters(), lr=1e-3)
 
 
 def get_criterion():
@@ -53,7 +66,7 @@ def run_validation(net: models, dataloader: DataLoader, log_dir: str, epoch: int
                                      global_step=validation_run_counter)
         writer_validation.file_writer.flush()
         batch_log_loss[i_batch] = log_loss(y_true=sample_batched['label'].detach().cpu(),
-                                           y_pred=softmax(outputs)[:, 1].detach().cpu(), eps=1e-5, labels=[1,0])
+                                           y_pred=softmax(outputs)[:, 1].detach().cpu(), eps=1e-5, labels=[1, 0])
         batch_accuracy[i_batch] = accuracy_score(y_true=sample_batched['label'].detach().cpu(),
                                                  y_pred=softmax(outputs).argmax(axis=1).detach().cpu())
     val_log_loss = np.mean(batch_log_loss)
@@ -76,7 +89,8 @@ def run_train(train_dataloader: DataLoader, validation_dataloader: DataLoader):
                                                        experiment_name))
     epoch_size = config.epoch_size
     device = config.device
-    net, optimizer = get_model()
+    net = get_model(config.pretrained_weights_path)
+    optimizer = get_optimizer(model=net)
     criterion = get_criterion()
     softmax = nn.Softmax(dim=1)
 
@@ -123,7 +137,10 @@ def run_train(train_dataloader: DataLoader, validation_dataloader: DataLoader):
 
 if __name__ == "__main__":
     train_dataset = get_dataset(json_path=config.train_json_path, data_path=config.train_data_path)
-    train_dl = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, num_workers=8)
+    class_sample_count = np.array(train_dataset.class_sample_count(), dtype=np.float32)
+    weights = 1 - class_sample_count / np.sum(class_sample_count)
+    sampler = torch.utils.data.sampler.WeightedRandomSampler(weights, len(train_dataset))
+    train_dl = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=False, num_workers=8, sampler=sampler)
     validation_dataset = get_dataset(json_path=config.validation_json_path, data_path=config.validation_data_path)
     validation_dl = DataLoader(validation_dataset, batch_size=config.batch_size, shuffle=True, num_workers=8)
 
