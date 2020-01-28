@@ -45,10 +45,11 @@ class VideoHandler:
             frame_decimation=self._frame_decimation,
             preprocessing_transform=self._transform
         )
-        fake_probability = self.classify(frame_list=frame_list)
+        scores = self.classify(frame_list=frame_list)
+        fake_probability = self.merge_to_single_score(scores=scores)
         return fake_probability
 
-    def classify(self, frame_list: List[torch.Tensor]) -> float:
+    def classify(self, frame_list: List[torch.Tensor]) -> torch.Tensor:
         """
         :return: This function calculates Fake probability for each frame in self._cropped_frames_folder
          and returns the mean probability
@@ -57,10 +58,18 @@ class VideoHandler:
             return 0.5
 
         device = torch.device("cuda")
-        frames = torch.stack(frame_list, dim=0)
-        output = self._net(frames.to(device))
-        probabilities = nn.Softmax(dim=0)(torch.mean(output, dim=0)).detach().cpu().numpy()
+        max_batch_size = 128
+        scores = []
+        while len(frame_list) > 0:
+            frames = torch.stack(frame_list[:max_batch_size], dim=0)
+            frame_list = frame_list[max_batch_size:]
+            output = self._net(frames.to(device)).detach()
+            scores.append(output)
 
+        return torch.cat(scores)
+
+    def merge_to_single_score(self, scores: torch.Tensor):
+        probabilities = nn.Softmax(dim=0)(torch.mean(scores, dim=0)).detach().cpu().numpy()
         video_fake_prob = float(probabilities[1])
 
         eps = 1e-8
